@@ -458,7 +458,7 @@ export function JoinTeamModal() {
       <input className="input num" autoFocus placeholder="e.g. DSN8M3 or an invite link" value={code} onChange={(e) => { setCode(e.target.value); setErr(""); }}
         onKeyDown={(e) => e.key === "Enter" && submit()} style={{ height: 42, fontSize: 15, letterSpacing: "0.04em" }} />
       {err && <div className="card-meta" style={{ color: "var(--danger)", marginTop: 8 }}>{err}</div>}
-      <div className="card-meta" style={{ marginTop: 10 }}>Demo codes: TRK7Q2 · OOP4K9 · DSN8M3 · MKT2P6</div>
+      <div className="card-meta" style={{ marginTop: 10 }}>Ask a team owner or admin for the code — it's in their Invite dialog.</div>
     </Modal>
   );
 }
@@ -504,7 +504,7 @@ export function InviteModal() {
             </select>
             <button className="btn primary" disabled={!target.trim()} onClick={send}>Invite</button>
           </div>
-          <div className="card-meta">{ROLE_DESC[role]}. {mode === "username" ? "Try: maya, alex, daniel, priya." : "Existing accounts join right away; new emails join when they sign up."}</div>
+          <div className="card-meta">{ROLE_DESC[role]}. {mode === "username" ? "They need a Kulii account already." : "Existing accounts join right away; new emails join when they sign up."}</div>
         </div>
       ) : (
         <div className="stack" style={{ marginTop: 14 }}>

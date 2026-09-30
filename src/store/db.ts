@@ -17,6 +17,7 @@ import {
   type Patch,
 } from "../shared/model";
 import { api, ApiError, connectSocket, type Bootstrap, type ServerMessage } from "../lib/api";
+import { authMessage, supabase } from "../lib/supabase";
 import { personalWs } from "../lib/utils";
 import { useUI } from "./ui";
 import type { Role, User } from "../data/types";
@@ -25,6 +26,8 @@ export interface DBState extends Data {
   currentUserId: string | null;
   status: "loading" | "anon" | "ready";
   live: boolean;
+  /** True after opening a password-reset link: the user must choose a new password. */
+  recovery: boolean;
   activeWs: string; // 'personal' | teamId
   theme: "light" | "dark";
   accent: string;
@@ -37,8 +40,10 @@ type ServerCommands = { [K in "joinTeam" | "inviteMember"]: (...args: ActionArgs
 
 export interface DBActions extends Commands, ServerCommands {
   init: () => Promise<void>;
-  login: (id: string, password: string) => Promise<string | null>;
-  register: (p: { name: string; email: string; username: string; password: string }) => Promise<string | null>;
+  login: (email: string, password: string) => Promise<string | null>;
+  register: (p: { name: string; email: string; username: string; password: string }) => Promise<{ error?: string; needsConfirm?: boolean }>;
+  sendPasswordReset: (email: string) => Promise<string | null>;
+  updatePassword: (password: string) => Promise<string | null>;
   logout: () => Promise<void>;
   resync: () => Promise<void>;
   setTheme: (t: DBState["theme"]) => void;
@@ -89,7 +94,7 @@ export const useDB = create<DB>()(
           },
           onStatus: (live) => set((s) => { s.live = live; }),
           onReconnect: () => void get().resync(),
-          onUnauthorized: () => signedOut(),
+          onUnauthorized: () => void get().logout(),
         });
       };
 
@@ -111,6 +116,7 @@ export const useDB = create<DB>()(
           s.currentUserId = null;
           s.status = "anon";
           s.live = false;
+          s.recovery = false;
           s.activeWs = "personal";
         });
       };
@@ -165,43 +171,94 @@ export const useDB = create<DB>()(
         (Object.keys(ACTIONS) as ActionName[]).map((n) => [n, SERVER_ONLY.includes(n) ? serverOnly(n) : optimistic(n)]),
       ) as unknown as Commands & ServerCommands;
 
+      /** Loads the profile + visible data for the current Supabase session (deduplicated). */
+      let loading: Promise<string | null> | null = null;
+      const loadMe = () =>
+        (loading ??= api
+          .me()
+          .then((b) => {
+            signedIn(b);
+            return null;
+          })
+          .catch((e: ApiError) => {
+            signedOut();
+            // Token rejected (e.g. account deleted) — drop the saved Supabase session too.
+            if (e.status === 401) void supabase.auth.signOut({ scope: "local" });
+            return e.message;
+          })
+          .finally(() => {
+            loading = null;
+          }));
+
+      let listening = false;
+
       return {
         ...emptyData(),
         currentUserId: null,
         status: "loading",
         live: false,
+        recovery: false,
         activeWs: "personal",
         theme: "light",
         accent: "#3FAF5A",
         ...commands,
 
         init: async () => {
-          try {
-            signedIn(await api.me());
-          } catch {
-            signedOut();
+          if (!listening) {
+            listening = true;
+            supabase.auth.onAuthStateChange((event, session) => {
+              // Defer: supabase-js recommends not awaiting its own calls inside this callback.
+              setTimeout(() => {
+                if (event === "SIGNED_OUT") signedOut();
+                else if (event === "PASSWORD_RECOVERY") set((s) => { s.recovery = true; });
+                if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY") && get().status !== "ready") void loadMe();
+              }, 0);
+            });
           }
+          const { data } = await supabase.auth.getSession();
+          if (data.session) await loadMe();
+          else signedOut();
         },
-        login: async (id, password) => {
-          try {
-            signedIn(await api.login(id, password));
-            set((s) => { s.activeWs = "personal"; });
-            return null;
-          } catch (e) {
-            return (e as Error).message;
-          }
+        login: async (email, password) => {
+          const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+          if (error) return authMessage(error);
+          set((s) => { s.activeWs = "personal"; });
+          return loadMe();
         },
-        register: async (p) => {
+        register: async ({ name, email, username, password }) => {
+          const handle = username.trim().replace(/^@/, "").toLowerCase();
           try {
-            signedIn(await api.register(p));
-            set((s) => { s.activeWs = "personal"; });
-            return null;
+            if (!(await api.usernameAvailable(handle))) return { error: "That username is taken or invalid (2–30 letters, numbers, . _ -)" };
           } catch (e) {
-            return (e as Error).message;
+            return { error: (e as Error).message };
           }
+          const { data, error } = await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: { data: { name: name.trim(), username: handle }, emailRedirectTo: location.origin },
+          });
+          if (error) return { error: authMessage(error) };
+          // Supabase hides whether an email is already registered; an empty identities list means it is.
+          if (data.user && data.user.identities?.length === 0) return { error: "That email is already registered — try signing in" };
+          if (data.session) {
+            const err = await loadMe();
+            return err ? { error: err } : {};
+          }
+          return { needsConfirm: true };
+        },
+        sendPasswordReset: async (email) => {
+          const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${location.origin}/reset-password` });
+          return error ? authMessage(error) : null;
+        },
+        updatePassword: async (password) => {
+          const { error } = await supabase.auth.updateUser({ password });
+          if (error) return authMessage(error);
+          set((s) => { s.recovery = false; });
+          return null;
         },
         logout: async () => {
-          await api.logout().catch(() => undefined);
+          stopSocket?.();
+          await supabase.auth.signOut().catch(() => undefined);
           signedOut();
         },
         resync: async () => {

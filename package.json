@@ -9,16 +9,20 @@
     "dev:web": "vite",
     "build": "tsc --noEmit && tsc --noEmit -p server && vite build",
     "start": "tsx server/index.ts",
-    "db:reset": "node -e \"require('fs').rmSync('server/data',{recursive:true,force:true});console.log('Database removed — it will be re-seeded on next start')\""
+    "db:reset": "tsx server/reset.ts",
+    "db:remove-demo": "tsx server/remove-demo.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/supabase-js": "^2.117.2",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.6.1",
     "express": "^4.22.3",
     "immer": "^10.2.0",
     "lucide-react": "^0.445.0",
+    "pg": "^8.23.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",
@@ -29,6 +33,7 @@
   "devDependencies": {
     "@types/express": "^4.17.25",
     "@types/node": "^24.19.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^18.3.8",
     "@types/react-dom": "^18.3.0",
     "@types/ws": "^8.18.2",

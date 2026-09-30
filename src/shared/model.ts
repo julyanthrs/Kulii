@@ -234,15 +234,11 @@ type TeamInput = Pick<Team, "name" | "description" | "icon" | "color" | "categor
 
 export const ACTIONS = {
   /* profile */
-  updateProfile(s: Data, patch: Partial<Pick<User, "name" | "title" | "availability" | "email" | "username">>) {
+  /** Email is owned by the sign-in account (Supabase Auth) and synced by the server, so it isn't editable here. */
+  updateProfile(s: Data, patch: Partial<Pick<User, "name" | "title" | "availability" | "username">>) {
     const u = need(s.users[me()], "User");
-    const p = pick<User>(patch, ["name", "title", "availability", "email", "username"]);
+    const p = pick<User>(patch, ["name", "title", "availability", "username"]);
     const others = Object.values(s.users).filter((x) => x.id !== u.id);
-    if (p.email !== undefined) {
-      p.email = str(p.email, 200).trim().toLowerCase();
-      if (!/^\S+@\S+\.\S+$/.test(p.email)) throw new CmdError("Enter a valid email");
-      if (others.some((x) => x.email.toLowerCase() === p.email)) throw new CmdError("That email is already in use");
-    }
     if (p.username !== undefined) {
       p.username = str(p.username, 40).trim().replace(/^@/, "").toLowerCase();
       if (!/^[a-z0-9._-]{2,40}$/.test(p.username)) throw new CmdError("Usernames use letters, numbers, dots and dashes");
@@ -651,8 +647,8 @@ export function tick(s: Data) {
 }
 
 /** Creates an account and turns any pending invites for its email/username into memberships. */
-export function registerUser(s: Data, p: { name: string; email: string; username: string }) {
-  const id = newId("u");
+export function registerUser(s: Data, p: { id: string; name: string; email: string; username: string }) {
+  const id = p.id;
   const email = p.email.trim().toLowerCase();
   const username = p.username.trim().replace(/^@/, "").toLowerCase();
   s.users[id] = { id, name: p.name.trim(), email, username, title: "Member", hue: Math.floor(rand() * 360), availability: "available", createdAt: nowIso() };

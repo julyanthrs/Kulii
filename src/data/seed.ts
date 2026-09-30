@@ -32,7 +32,7 @@ const U = (id: string, name: string, username: string, title: string, hue: numbe
   id,
   name,
   username,
-  email: `${username}@kulii.app`,
+  email: `${username}@example.com`, // reserved domain — sample accounts never receive real mail
   title,
   hue,
   availability,
@@ -50,9 +50,9 @@ const seedUsers = () => [
   U("u8", "Leo Grant", "leo", "Visual Designer", 45, "available"),
 ];
 
-/** Seeded accounts (password "demo") — shown as quick sign-in buttons on the login page. */
+/** Sample accounts — shown as quick sign-in buttons on the login page. */
 export const DEMO_ACCOUNTS = seedUsers();
-export const DEMO_PASSWORD = "demo";
+export const DEMO_PASSWORD = "demo1234";
 
 export function buildSeed() {
   const users: User[] = seedUsers();

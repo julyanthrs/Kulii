@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import ResetPassword from "./pages/ResetPassword";
 import { Scene } from "./components/shell/Shell";
 import { useDB } from "./store/db";
 import { useUI } from "./store/ui";
@@ -105,11 +106,18 @@ export default function App() {
   const init = useDB((s) => s.init);
   const userExists = useDB((s) => !!(s.currentUserId && s.users[s.currentUserId]));
   const authed = status === "ready" && userExists;
+  const recovery = useDB((s) => s.recovery);
   const nav = useNavigate();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     void init();
   }, [init]);
+
+  // Opened a password-reset link → make them choose a new password first.
+  useEffect(() => {
+    if (recovery && pathname !== "/reset-password") nav("/reset-password", { replace: true });
+  }, [recovery, pathname, nav]);
 
   // Resume an invite link that was opened while signed out.
   useEffect(() => {
@@ -127,6 +135,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={authed ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/join/:code" element={<JoinRoute authed={authed} />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/*"
           element={

@@ -1,91 +1,60 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import type { Request, Response } from "express";
-import { sql } from "./store";
+/**
+ * Accounts live in Supabase Auth. The browser signs in with supabase-js and sends its
+ * access token; the server verifies it and maps the Supabase user id to a profile.
+ */
+import { createClient } from "@supabase/supabase-js";
+import type { Request } from "express";
+import { env } from "./env";
 
-export const COOKIE = "kulii_session";
-const SESSION_DAYS = 30;
+export const admin = createClient(env.supabaseUrl, env.serviceKey, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
 
-export function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
+export interface Claims {
+  sub: string;
+  email?: string;
+  role?: string;
+  exp?: number;
+  user_metadata?: Record<string, unknown>;
 }
 
-function verifyHash(password: string, stored: string) {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
-  const a = Buffer.from(hash, "hex");
-  const b = scryptSync(password, salt, 64);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
+const cache = new Map<string, Claims>();
 
-const setCred = sql.prepare("INSERT INTO credentials (user_id, password_hash) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET password_hash = excluded.password_hash");
-const getCred = sql.prepare("SELECT password_hash FROM credentials WHERE user_id = ?");
-const findUser = sql.prepare("SELECT id FROM users WHERE email = ? OR username = ?");
-
-export const setPassword = (userId: string, password: string) => setCred.run(userId, hashPassword(password));
-
-export function checkLogin(identifier: string, password: string): string | null {
-  const q = identifier.trim().replace(/^@/, "").toLowerCase();
-  const row = findUser.get(q, q) as { id: string } | undefined;
-  // Hash anyway so response time doesn't reveal whether the account exists.
-  const cred = row ? (getCred.get(row.id) as { password_hash: string } | undefined) : undefined;
-  const ok = verifyHash(password, cred?.password_hash ?? "00:00");
-  return row && cred && ok ? row.id : null;
-}
-
-/* ---------------- sessions ---------------- */
-
-const insertSession = sql.prepare("INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)");
-const readSession = sql.prepare("SELECT user_id, expires_at FROM sessions WHERE token = ?");
-const dropSession = sql.prepare("DELETE FROM sessions WHERE token = ?");
-sql.prepare("DELETE FROM sessions WHERE expires_at < ?").run(Date.now());
-
-export function createSession(res: Response, req: Request, userId: string) {
-  const token = randomBytes(32).toString("base64url");
-  const now = Date.now();
-  insertSession.run(token, userId, now, now + SESSION_DAYS * 86400_000);
-  res.cookie(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: req.secure,
-    path: "/",
-    maxAge: SESSION_DAYS * 86400_000,
-  });
-}
-
-export function parseCookies(header: string | undefined) {
-  const out: Record<string, string> = {};
-  for (const part of (header ?? "").split(";")) {
-    const i = part.indexOf("=");
-    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+/** Verifies a Supabase access token (locally via JWKS when the project uses signing keys). */
+export async function verifyToken(token: string | null | undefined): Promise<Claims | null> {
+  if (!token || token.length > 4096) return null;
+  const hit = cache.get(token);
+  if (hit) {
+    if ((hit.exp ?? 0) * 1000 > Date.now()) return hit;
+    cache.delete(token);
   }
-  return out;
+  try {
+    const { data, error } = await admin.auth.getClaims(token);
+    const c = data?.claims as Claims | undefined;
+    if (error || !c?.sub || c.role !== "authenticated") return null;
+    if (cache.size > 5000) cache.clear();
+    cache.set(token, c);
+    return c;
+  } catch {
+    return null;
+  }
 }
 
-export function sessionUser(cookieHeader: string | undefined): string | null {
-  const token = parseCookies(cookieHeader)[COOKIE];
-  if (!token) return null;
-  const row = readSession.get(token) as { user_id: string; expires_at: number } | undefined;
-  if (!row || row.expires_at < Date.now()) return null;
-  return row.user_id;
-}
+export const bearer = (req: Request) => req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;
 
-export function endSession(req: Request, res: Response) {
-  const token = parseCookies(req.headers.cookie)[COOKIE];
-  if (token) dropSession.run(token);
-  res.clearCookie(COOKIE, { path: "/" });
+/** Finds or creates a confirmed auth user (used for the sample accounts). */
+export async function ensureAuthUser(email: string, password: string, meta: Record<string, unknown>): Promise<string> {
+  const created = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: meta });
+  if (created.data.user) return created.data.user.id;
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    const u = data.users.find((x) => x.email?.toLowerCase() === email.toLowerCase());
+    if (u) {
+      await admin.auth.admin.updateUserById(u.id, { password, email_confirm: true, user_metadata: meta });
+      return u.id;
+    }
+    if (data.users.length < 200) break;
+  }
+  throw created.error ?? new Error(`Could not create ${email}`);
 }
-
-/* ---------------- naive login throttle ---------------- */
-
-const attempts = new Map<string, { n: number; until: number }>();
-export function throttled(key: string) {
-  const a = attempts.get(key);
-  return !!a && a.n >= 8 && a.until > Date.now();
-}
-export function recordFailure(key: string) {
-  const a = attempts.get(key);
-  if (!a || a.until < Date.now()) attempts.set(key, { n: 1, until: Date.now() + 10 * 60_000 });
-  else a.n++;
-}
-export const clearFailures = (key: string) => attempts.delete(key);

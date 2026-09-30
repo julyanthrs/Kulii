@@ -64,8 +64,19 @@ function Profile() {
   const me = useMe();
   const updateProfile = useDB((s) => s.updateProfile);
   const toast = useUI((s) => s.toast);
-  const [f, setF] = useState({ name: me.name, title: me.title, email: me.email, username: me.username });
-  useEffect(() => setF({ name: me.name, title: me.title, email: me.email, username: me.username }), [me.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const updatePassword = useDB((s) => s.updatePassword);
+  const [f, setF] = useState({ name: me.name, title: me.title, username: me.username });
+  const [pw, setPw] = useState({ next: "", again: "", err: "", busy: false });
+  useEffect(() => setF({ name: me.name, title: me.title, username: me.username }), [me.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const changePassword = async () => {
+    if (pw.next.length < 8) return setPw({ ...pw, err: "Password needs at least 8 characters" });
+    if (pw.next !== pw.again) return setPw({ ...pw, err: "Passwords don't match" });
+    setPw({ ...pw, busy: true, err: "" });
+    const e = await updatePassword(pw.next);
+    if (e) return setPw({ ...pw, busy: false, err: e });
+    setPw({ next: "", again: "", err: "", busy: false });
+    toast("Password updated");
+  };
   return (
     <>
       <Section title="Profile" sub="How teammates see you.">
@@ -79,11 +90,21 @@ function Profile() {
         <div className="field-row">
           <label className="field"><span>Full name</span><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
           <label className="field"><span>Title</span><input className="input" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></label>
-          <label className="field"><span>Email</span><input className="input" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></label>
+          <label className="field"><span>Email · used to sign in</span><input className="input" value={me.email} readOnly disabled /></label>
           <label className="field"><span>Username</span><input className="input" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} /></label>
         </div>
         <div className="row" style={{ justifyContent: "flex-end", marginTop: 14 }}>
           <button className="btn primary" onClick={() => { updateProfile(f); toast("Profile saved"); }}>Save changes</button>
+        </div>
+      </Section>
+      <Section title="Password" sub="Choose a new password for signing in.">
+        <div className="field-row">
+          <input className="input" type="password" placeholder="New password (8+ characters)" autoComplete="new-password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value, err: "" })} />
+          <input className="input" type="password" placeholder="Repeat new password" autoComplete="new-password" value={pw.again} onChange={(e) => setPw({ ...pw, again: e.target.value, err: "" })} />
+        </div>
+        {pw.err && <div className="card-meta" style={{ color: "var(--danger)", marginTop: 8 }}>{pw.err}</div>}
+        <div className="row" style={{ justifyContent: "flex-end", marginTop: 14 }}>
+          <button className="btn" disabled={pw.busy || !pw.next} onClick={() => void changePassword()}>{pw.busy ? "Saving…" : "Update password"}</button>
         </div>
       </Section>
       <Section title="Availability" sub="Shown next to your avatar across teams.">
