@@ -67,6 +67,23 @@ app.disable("x-powered-by");
 app.set("trust proxy", "loopback");
 app.use(express.json({ limit: "1mb" }));
 
+// Split hosting (website on Vercel, API elsewhere): allow the listed website origins.
+// Auth is a bearer token, not a cookie, so no credentials mode is needed.
+app.use("/api", (req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && env.corsOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Max-Age", "600");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(origin && env.corsOrigins.includes(origin) ? 204 : 403);
+  next();
+});
+
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
 type AuthedRequest = Request & { userId: string };
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   void verifyToken(bearer(req)).then(async (c) => {

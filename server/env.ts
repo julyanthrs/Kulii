@@ -16,7 +16,10 @@ export const env = {
   /** The Supabase URI keeps a literal [YOUR-PASSWORD]; we substitute the (URL-encoded) password here. */
   databaseUrl: process.env.DATABASE_URL!.replace("[YOUR-PASSWORD]", encodeURIComponent(process.env.DATABASE_PASSWORD ?? "")),
   databaseCa: process.env.DATABASE_CA_CERT,
-  port: Number(process.env.API_PORT) || 8787,
+  // Hosting providers (Render, Railway…) assign PORT. In dev, PORT belongs to Vite, so only use it with --prod.
+  port: Number(process.env.API_PORT) || (process.argv.includes("--prod") ? Number(process.env.PORT) : 0) || 8787,
+  /** Website addresses allowed to call the API from another origin, e.g. https://kulii.vercel.app (comma-separated). */
+  corsOrigins: (process.env.CORS_ORIGINS ?? "").split(",").map((s) => s.trim().replace(/\/+$/, "")).filter(Boolean),
   /** Opt-in: SEED_DEMO=true creates the sample workspace + demo accounts on an empty database. */
   seedDemo: process.env.SEED_DEMO === "true",
 };

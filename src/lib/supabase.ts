@@ -3,10 +3,14 @@ import { createClient } from "@supabase/supabase-js";
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!url || !key) console.error("VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are missing — check .env");
+/** False when the build had no Supabase settings (e.g. env vars not added on the hosting provider). */
+export const supabaseConfigured = Boolean(url && key);
 
-/** Browser client — handles sign-in, session storage and token refresh. Data goes through our API. */
-export const supabase = createClient(url, key, {
+/**
+ * Browser client — handles sign-in, session storage and token refresh. Data goes through our API.
+ * Built with placeholders when unconfigured so the app can render a helpful error instead of crashing.
+ */
+export const supabase = createClient(url || "https://not-configured.supabase.co", key || "not-configured", {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "kulii-auth" },
 });
 

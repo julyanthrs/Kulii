@@ -14,6 +14,12 @@ export interface CmdResponse {
   snapshot?: Data;
 }
 
+/** Empty = same address as the website (dev proxy, or one server in production). */
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+const WS_URL = API_BASE
+  ? `${API_BASE.replace(/^http/, "ws")}/ws`
+  : `${typeof location !== "undefined" && location.protocol === "https:" ? "wss" : "ws"}://${typeof location !== "undefined" ? location.host : ""}/ws`;
+
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
     super(message);
@@ -27,12 +33,22 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   if (token) headers.Authorization = `Bearer ${token}`;
   let res: Response;
   try {
-    res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    res = await fetch(API_BASE + url, { method, headers, body: body ? JSON.stringify(body) : undefined });
   } catch {
-    throw new ApiError("Can't reach Kulii at this address — the dev server may have stopped or moved. Reload the page, or run npm run dev.", 0);
+    throw new ApiError(
+      API_BASE
+        ? "Can't reach the Kulii API server — it may be starting up (free hosting sleeps when idle). Try again in a minute."
+        : "Can't reach Kulii at this address — the dev server may have stopped or moved. Reload the page, or run npm run dev.",
+      0,
+    );
   }
   if (!res.headers.get("content-type")?.includes("application/json"))
-    throw new ApiError("This address isn't serving the Kulii API — make sure you opened the URL printed by npm run dev.", res.status || 502);
+    throw new ApiError(
+      API_BASE
+        ? "The API address (VITE_API_URL) isn't answering like a Kulii server — check the URL."
+        : "This site has no Kulii API server behind it. If it's hosted on Vercel, set VITE_API_URL to your API server's address.",
+      res.status || 502,
+    );
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.ok === false) throw new ApiError(json.error ?? `Request failed (${res.status})`, res.status);
   return json as T;
@@ -63,7 +79,7 @@ export function connectSocket(handlers: {
 
   const open = () => {
     if (stopped) return;
-    ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
+    ws = new WebSocket(WS_URL);
     ws.onopen = async () => {
       // First frame authenticates the socket with the current Supabase access token.
       ws?.send(JSON.stringify({ type: "auth", token: await accessToken() }));

@@ -16,6 +16,15 @@
   padding: 26px;
   animation: panelIn 0.5s var(--ease) both;
 }
+.config-list {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--inset);
+  font-size: 12px;
+  line-height: 1.7;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
 .splash {
   position: relative;
   z-index: 1;

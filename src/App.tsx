@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ResetPassword from "./pages/ResetPassword";
+import { supabaseConfigured } from "./lib/supabase";
 import { Scene } from "./components/shell/Shell";
 import { useDB } from "./store/db";
 import { useUI } from "./store/ui";
@@ -101,7 +102,33 @@ function Splash({ text }: { text: string }) {
   );
 }
 
+/** Shown when the build had no Supabase settings — e.g. env vars not added on the hosting provider. */
+function NotConfigured() {
+  return (
+    <>
+      <ThemeSync />
+      <Scene />
+      <div className="login-wrap">
+        <div className="login-card glass">
+          <span className="brand-mark" style={{ display: "block", marginBottom: 18 }} />
+          <h1 className="page-title">Kulii isn't configured yet</h1>
+          <p className="page-sub" style={{ margin: "8px 0 14px" }}>
+            This build is missing its Supabase settings. Add these environment variables where the site is hosted, then redeploy:
+          </p>
+          <pre className="config-list">VITE_SUPABASE_URL{"\n"}VITE_SUPABASE_ANON_KEY{"\n"}VITE_API_URL</pre>
+          <p className="card-meta">On Vercel: Project → Settings → Environment Variables, then Deployments → Redeploy.</p>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function App() {
+  if (!supabaseConfigured) return <NotConfigured />;
+  return <ConfiguredApp />;
+}
+
+function ConfiguredApp() {
   const status = useDB((s) => s.status);
   const init = useDB((s) => s.init);
   const userExists = useDB((s) => !!(s.currentUserId && s.users[s.currentUserId]));
