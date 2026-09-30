@@ -1,0 +1,209 @@
+/* ---------------------------------------------------------------------------
+   Tablet — collapse lower-priority widgets
+--------------------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .hide-md {
+    display: none !important;
+  }
+  .dash {
+    height: auto;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: repeat(7, 124px);
+  }
+  .dash-team,
+  .dash-personal {
+    grid-template-areas:
+      "today today today prog prog prog"
+      "today today today mem mem mem"
+      "mine mine mine dead dead dead"
+      "mine mine mine dead dead dead"
+      "quick quick quick ann ann ann"
+      "proj proj proj ann ann ann"
+      "proj proj proj vault vault vault";
+  }
+  .dash [style*="grid-area: up"],
+  .dash [style*="grid-area: act"] {
+    display: none !important;
+  }
+  .team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "about about"
+      "ann mem"
+      "proj act";
+  }
+  .settings {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .triage {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile — bottom nav, vertical layout
+--------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .hide-sm {
+    display: none !important;
+  }
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 50px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px 12px 84px;
+  }
+  .shell > .topbar {
+    grid-column: 1;
+  }
+  .shell > .dock-wrap {
+    display: none;
+  }
+  .shell > .main {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .main-panel {
+    border-radius: 22px;
+  }
+  .topbar-pill {
+    height: 50px;
+    gap: 6px;
+    padding: 0 5px;
+  }
+  .welcome {
+    padding-right: 0;
+  }
+  .topbar .welcome .avatar {
+    --s: 36px !important;
+  }
+  .topbar > .icon-btn {
+    width: 50px !important;
+    height: 50px !important;
+  }
+  .cmd-field {
+    height: 36px;
+  }
+  .mobile-nav {
+    position: fixed;
+    z-index: 60;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    height: 58px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+  }
+  .mobile-nav .dock-btn {
+    width: 42px;
+    height: 42px;
+  }
+  .page {
+    padding: 14px 12px 16px;
+  }
+  .page-title {
+    font-size: 21px;
+  }
+  .page-head {
+    align-items: flex-start;
+  }
+  .page-actions {
+    width: 100%;
+  }
+  .dash {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+    grid-template-areas: none !important;
+  }
+  .dash > .card {
+    grid-area: auto !important;
+    min-height: 150px;
+    max-height: 380px;
+  }
+  .dash [style*="grid-area: up"],
+  .dash [style*="grid-area: act"] {
+    display: flex !important;
+  }
+  .team-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas: "about" "ann" "mem" "proj" "act";
+  }
+  .stat-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .board {
+    grid-auto-columns: 82%;
+    scroll-snap-type: x mandatory;
+  }
+  .k-col {
+    scroll-snap-align: start;
+  }
+  .settings {
+    grid-template-columns: 1fr;
+  }
+  .settings-nav {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .settings-tab {
+    white-space: nowrap;
+  }
+  .triage,
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+  .drawer {
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+  }
+  .props {
+    grid-template-columns: 76px 1fr;
+  }
+  .cal-month {
+    grid-auto-rows: minmax(64px, 1fr);
+    gap: 3px;
+  }
+  .cal-cell {
+    padding: 3px;
+    border-radius: 10px;
+  }
+  .cal-chip {
+    font-size: 0;
+    padding: 0 3px;
+    height: 6px;
+  }
+  .cal-chip > i {
+    height: 4px;
+  }
+  .cal-week {
+    grid-template-columns: repeat(7, 160px);
+  }
+  .toasts {
+    bottom: 84px;
+  }
+  .notif-panel {
+    top: 70px;
+    right: 12px;
+  }
+  .table {
+    min-width: 640px;
+  }
+  .list-wrap,
+  .page-body {
+    overflow-x: auto;
+  }
+}

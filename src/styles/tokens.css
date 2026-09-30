@@ -1,0 +1,96 @@
+:root {
+  color-scheme: light;
+  --font: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+
+  /* surfaces */
+  --bg: #d8d4cd;
+  --bg-hi: #e9e6e0;
+  --bg-lo: #c4beb4;
+  --glass: rgba(240, 238, 233, 0.7);
+  --glass-strong: rgba(244, 242, 238, 0.88);
+  --card: rgba(255, 255, 255, 0.34);
+  --card-hover: rgba(255, 255, 255, 0.46);
+  --tile: rgba(255, 255, 255, 0.55);
+  --tile-hover: rgba(255, 255, 255, 0.75);
+  --inset: rgba(60, 54, 46, 0.07);
+  --inset-strong: rgba(60, 54, 46, 0.11);
+  --selected: #ffffff;
+  --selected-text: #1d1d1b;
+  --scrim: rgba(60, 54, 46, 0.18);
+
+  /* lines */
+  --line: rgba(255, 255, 255, 0.5);
+  --line-soft: rgba(35, 35, 33, 0.07);
+  --line-strong: rgba(35, 35, 33, 0.12);
+
+  /* text */
+  --text: #232321;
+  --text-2: #77736d;
+  --text-3: #a39e96;
+  --on-dark: #f6f4f0;
+
+  /* accent (overridden inline from settings) */
+  --accent: #3faf5a;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 45%, transparent);
+
+  /* priority — tiny indicators only */
+  --p-urgent: #d0584b;
+  --p-high: #dd8a3e;
+  --p-medium: #d3b24c;
+  --p-low: #7aa983;
+  --danger: #c4513f;
+
+  /* depth */
+  --hl: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  --shadow-panel: 0 40px 80px -40px rgba(70, 58, 44, 0.45), 0 10px 30px -16px rgba(70, 58, 44, 0.22);
+  --shadow-float: 0 18px 40px -20px rgba(70, 58, 44, 0.45), 0 4px 12px -6px rgba(70, 58, 44, 0.15);
+  --shadow-card: 0 1px 1px rgba(70, 58, 44, 0.04);
+  --shadow-card-hover: 0 10px 24px -14px rgba(70, 58, 44, 0.35);
+  --shadow-pop: 0 30px 60px -24px rgba(40, 32, 24, 0.45), 0 8px 18px -10px rgba(40, 32, 24, 0.2);
+  --blur: blur(30px) saturate(150%);
+  --blur-soft: blur(18px) saturate(140%);
+
+  /* shape */
+  --r-panel: 28px;
+  --r-card: 20px;
+  --r-ctl: 12px;
+  --r-sm: 9px;
+
+  /* motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #171715;
+  --bg-hi: #24231f;
+  --bg-lo: #0f0f0e;
+  --glass: rgba(40, 40, 37, 0.78);
+  --glass-strong: rgba(36, 36, 33, 0.92);
+  --card: rgba(255, 255, 255, 0.045);
+  --card-hover: rgba(255, 255, 255, 0.075);
+  --tile: rgba(255, 255, 255, 0.07);
+  --tile-hover: rgba(255, 255, 255, 0.12);
+  --inset: rgba(0, 0, 0, 0.22);
+  --inset-strong: rgba(0, 0, 0, 0.32);
+  --selected: rgba(255, 255, 255, 0.16);
+  --selected-text: #f3f1ec;
+  --scrim: rgba(0, 0, 0, 0.35);
+
+  --line: rgba(255, 255, 255, 0.08);
+  --line-soft: rgba(255, 255, 255, 0.06);
+  --line-strong: rgba(255, 255, 255, 0.12);
+
+  --text: #f3f1ec;
+  --text-2: #99958e;
+  --text-3: #6d6a64;
+
+  --hl: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-panel: 0 40px 80px -40px rgba(0, 0, 0, 0.8), 0 10px 30px -16px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 18px 40px -20px rgba(0, 0, 0, 0.8), 0 4px 12px -6px rgba(0, 0, 0, 0.4);
+  --shadow-card: none;
+  --shadow-card-hover: 0 10px 24px -14px rgba(0, 0, 0, 0.7);
+  --shadow-pop: 0 30px 60px -24px rgba(0, 0, 0, 0.8), 0 8px 18px -10px rgba(0, 0, 0, 0.5);
+}
